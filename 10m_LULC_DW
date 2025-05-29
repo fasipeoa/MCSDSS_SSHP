@@ -1,0 +1,43 @@
+Code link: https://code.earthengine.google.co.in/59a96e93b6e65622eda56694d277522d
+
+// Download the Real Time Global 10m Dynamic World Land Cover Data
+
+//1. Import Country boundaries
+var countries = ee.FeatureCollection('USDOS/LSIB_SIMPLE/2017');
+var roi = countries.filter(ee.Filter.eq('country_na', 'Zambia'));
+
+//2. Define start date and end date
+var startDate = '2022-01-01';
+var endDate = '2022-05-31';
+
+//3. Load DYNAMIC WORLD Data
+var dw = ee.ImageCollection('GOOGLE/DYNAMICWORLD/V1')
+.filterDate(startDate, endDate);
+//.filterBounds(roi);
+
+//4. Clip with countries boundaries
+
+//var dwImage = ee.Image(dw.mosaic()); //.clip(roi);
+var dwImage = ee.Image(dw.mosaic()).clip(roi);
+
+print('DW ee.Image', dwImage) ;
+
+//5. Display the the classified image using the label band.
+var classification = dwImage.select('label');
+var dwVisParams = {
+min: 0,
+max: 8,
+ palette: ['#419BDF', '#397D49', '#888053', '#7A87C6', '#E49635', '#DFC35A', '#C4281B', '#A59B8F', '#B39FE1']
+};
+
+Map.addLayer(classification, dwVisParams, 'Classified Image');
+Map.centerObject(roi);
+
+//6. Export classified map to Google Drive
+Export.image.toDrive({
+  image: classification,
+  description: 'Dynamic_World_2022',
+  scale: 10,
+  region: roi,
+  maxPixels: 1e13,
+});
