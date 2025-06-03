@@ -1,0 +1,82 @@
+# Import necessary libraries
+import geopandas as gpd
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+from shapely.geometry import Point
+from sklearn.preprocessing import MinMaxScaler
+
+# Define the MCSDSS class
+class MCSDSS:
+    def __init__(self, shapefile=None, lat_lon=None):
+        self.shapefile = shapefile
+        self.lat_lon = lat_lon
+        self.data = None
+        self.criteria_weights = None
+        self.criteria_data = None
+
+    def load_data(self):
+        """Load spatial data from a shapefile or latitude/longitude."""
+        if self.shapefile:
+            self.data = gpd.read_file(self.shapefile)
+        elif self.lat_lon:
+            self.data = self.create_geodataframe(self.lat_lon)
+        else:
+            raise ValueError("No data source provided.")
+
+    def create_geodataframe(self, lat_lon):
+        """Create a GeoDataFrame from latitude and longitude."""
+        geometry = [Point(lon, lat) for lon, lat in lat_lon]
+        return gpd.GeoDataFrame(geometry=geometry)
+
+    def set_criteria(self, criteria):
+        """Set the criteria for decision making."""
+        self.criteria_data = criteria
+
+    def set_weights(self, weights):
+        """Set the weights for each criterion."""
+        self.criteria_weights = weights
+
+    def normalize_criteria(self):
+        """Normalize the criteria data."""
+        scaler = MinMaxScaler()
+        self.criteria_data = scaler.fit_transform(self.criteria_data)
+
+    def calculate_scores(self):
+        """Calculate the overall scores based on criteria and weights."""
+        scores = np.dot(self.criteria_data, self.criteria_weights)
+        return scores
+
+    def visualize_results(self, scores):
+        """Visualize the results on a map."""
+        self.data['scores'] = scores
+        self.data.plot(column='scores', cmap='viridis', legend=True)
+        plt.title('MCSDSS Results')
+        plt.show()
+
+    def run(self):
+        """Run the MCSDSS process."""
+        self.load_data()
+        self.normalize_criteria()
+        scores = self.calculate_scores()
+        self.visualize_results(scores)
+
+# Example usage
+if __name__ == "__main__":
+    # Define parameters
+    shapefile_path = "path/to/your/shapefile.shp"
+    lat_lon_data = [(longitude1, latitude1), (longitude2, latitude2)]  # Example coordinates
+    criteria_data = pd.DataFrame({
+        'criterion1': [value1, value2],
+        'criterion2': [value3, value4],
+        # Add more criteria as needed
+    })
+    weights = np.array([0.5, 0.5])  # Example weights for criteria
+
+    # Initialize MCSDSS
+    mcsdss = MCSDSS(shapefile=shapefile_path)
+    mcsdss.set_criteria(criteria_data)
+    mcsdss.set_weights(weights)
+
+    # Run the MCSDSS
+    mcsdss.run()
